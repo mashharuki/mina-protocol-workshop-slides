@@ -11,7 +11,7 @@ class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class ECDSA extends createEcdsa(Secp256k1) {}
 class Bytes32 extends Bytes(32) {}
 
-const EthSignatureProgram = ZkProgram({
+export const EthSignatureProgram = ZkProgram({
   name: 'EthSignatureProgram',
   publicInput: Bytes32,
   publicOutput: Bool,
