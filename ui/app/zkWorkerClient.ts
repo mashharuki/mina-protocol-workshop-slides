@@ -23,4 +23,16 @@ export default class ZkWorkerCllient {
   async compileProgram() {
     return this.remoteApi.compileProgram();
   }
+
+  async verifySignature(
+    message: string,
+    ethSignature: string,
+    ethPublicKey: string
+  ) {
+    console.log("Verifying signature...");
+    console.log("Message: ", message);
+    console.log("Signature: ", ethSignature);
+    console.log("Public key: ", ethPublicKey);
+    return this.remoteApi.verifySignature(message, ethSignature, ethPublicKey);
+  }
 }
