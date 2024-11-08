@@ -7,14 +7,13 @@ class Secp256k1 extends createForeignCurve(Crypto.CurveParams.Secp256k1) {}
 class ECDSA extends createEcdsa(Secp256k1) {}
 class Bytes32 extends Bytes(32) {}
 
-const ethWallet = Wallet.createRandom();
-
 describe('EthSignatureProgram', () => {
   // Padding the messages to 32 bytes so that both signing libraries handle them the same
   const message = 'Hello, world!'.padEnd(32, '0');
   const spoofedMessage = 'Goodbye, world!'.padEnd(32, '0');
 
   // Convert ethereum public key to o1js Secp256k1 point
+  const ethWallet = Wallet.createRandom();
   const compressedPublicKey = ethWallet.signingKey.compressedPublicKey;
   const publicKey = Secp256k1.fromEthers(compressedPublicKey);
 
