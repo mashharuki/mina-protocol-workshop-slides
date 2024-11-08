@@ -10,7 +10,6 @@ import ZkWorkerClient from './zkWorkerClient';
 import { ethers, SigningKey, Wallet } from 'ethers';
 
 export default function Home() {
-  const [ethWallet] = useState(Wallet.createRandom());
   const [zkWorkerClient] = useState(new ZkWorkerClient());
   const [hasBeenCompiled, sethasBeenCompiled] = useState(false);
 
@@ -30,8 +29,7 @@ export default function Home() {
       const address = await signer.getAddress();
       
       setConnected(true);
-      // setEthAddress(address);
-      setEthAddress(ethWallet.address);
+      setEthAddress(address);
       setEthSigner(signer);
     } else {
       // Disconnect the wallet
@@ -64,7 +62,6 @@ export default function Home() {
     const ethSignature = await signer.signMessage(message);
     console.log('signing message with ethers.js')
     console.log('message:', message)
-    // const ethSignature = await ethWallet.signMessage(message);
     setEthSignature(ethSignature);
     return ethSignature;
   }
