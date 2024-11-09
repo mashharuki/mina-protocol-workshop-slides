@@ -52,10 +52,16 @@ export const api = {
     const valid = result.proof.publicOutput.toBoolean();
     if (!valid) {
       console.error("Invalid signature");
-      return false;
+      return {
+        valid: false,
+        proof: result.proof.toJSON(),
+      };
     }
 
-    return true;
+    return {
+      valid: true,
+      proof: result.proof.toJSON(),
+    };
   },
 };
 

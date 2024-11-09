@@ -5,13 +5,16 @@ import { useEffect, useState } from 'react';
 import GradientBG from './components/GradientBG.js'
 import styles from '../styles/Home.module.css';
 import heroMinaLogo from '../public/assets/hero-mina-logo.svg';
-import arrowRightSmall from '../public/assets/arrow-right-small.svg';
 import ZkWorkerClient from './zkWorkerClient';
-import { ethers, SigningKey, Wallet } from 'ethers';
+import { ethers, SigningKey } from 'ethers';
+import { JsonProof } from 'o1js';
 
 export default function Home() {
   const [zkWorkerClient] = useState(new ZkWorkerClient());
   const [hasBeenCompiled, sethasBeenCompiled] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [proof, setProof] = useState<JsonProof | null>(null);
 
   const [connected, setConnected] = useState(false);
   const [ethWalletAddress, setEthAddress] = useState("");
@@ -19,6 +22,10 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
   const [ethSignature, setEthSignature] = useState("");
+
+  function shortenString(str: string) {
+    return `${str.slice(0, 20)}...${str.slice(-6)}`;
+  }
 
   // Function to connect/disconnect the wallet
   async function connectEthWallet() {
@@ -45,7 +52,8 @@ export default function Home() {
     console.log("Wallet Address:", address);
 
     // Hash the message (to match Ethereum's signing behavior)
-    const messageHash = ethers.hashMessage(message);
+    const paddedMessage = message.padEnd(32, '0')
+    const messageHash = ethers.hashMessage(paddedMessage);
 
     const ethPublicKey = SigningKey.recoverPublicKey(messageHash, ethSignature);
     const compressedPublicKey = SigningKey.computePublicKey(ethPublicKey, true);
@@ -57,26 +65,25 @@ export default function Home() {
 }
 
   async function signMessageEthers(message: string) {
+    const paddedMessage = message.padEnd(32, '0')
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
-    const ethSignature = await signer.signMessage(message);
+    const ethSignature = await signer.signMessage(paddedMessage);
     console.log('signing message with ethers.js')
-    console.log('message:', message)
+    console.log('message:', paddedMessage)
     setEthSignature(ethSignature);
     return ethSignature;
   }
 
   async function verifyMessageMina(message: string) {
+    const paddedMessage = message.padEnd(32, '0')
     const ethPublicKey = await getPublicKeyFromSignature();
-    const result = await zkWorkerClient.verifySignature(message, ethSignature, ethPublicKey);
-    console.log(result);
+    const result = await zkWorkerClient.verifySignature(paddedMessage, ethSignature, ethPublicKey);
+    return result;
   }
 
   useEffect(() => {
     (async () => {
-      const { Mina, PublicKey } = await import('o1js');
-      const { EthSignatureProgram } = await import('../../zk/build/src/ethSignatureProgram.js');
-
       console.log('compiling...')
       await zkWorkerClient.loadProgram();
       await zkWorkerClient.compileProgram();
@@ -113,128 +120,94 @@ export default function Home() {
             </a>
             <p className={styles.tagline}>
               built with
-              <code className={styles.code}> o1js</code>
+              &nbsp;
+              <code className="font-weight-bold">o1js</code>
             </p>
-          </div>
-          <p className={styles.start}>
-            Get started by editing
-            <code className={styles.code}> app/page.tsx</code>
+          <div className='pt-10'>
+          <p className="text-black text-shadow-white text-2xl">
+            Eth -> Mina Signature Verification Example
           </p>
-          <div className={styles.grid}>
-            <a
-              href="https://docs.minaprotocol.com/zkapps"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>DOCS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Explore zkApps, how to build one, and in-depth references</p>
-            </a>
-            <a
-              href="https://docs.minaprotocol.com/zkapps/tutorials/hello-world"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>TUTORIALS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Learn with step-by-step o1js tutorials</p>
-            </a>
-            <a
-              href="https://discord.gg/minaprotocol"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>QUESTIONS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Ask questions on our Discord server</p>
-            </a>
-            <a
-              href="https://docs.minaprotocol.com/zkapps/how-to-deploy-a-zkapp"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>DEPLOY</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Deploy a zkApp to Testnet</p>
-            </a>
-          </div>
           <div>
-          <button className="btn" onClick={connectEthWallet}>
+          <button className="mt-4 mb-4 w-full text-lg text-white font-bold rounded-lg p-2 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-900" onClick={connectEthWallet}>
             {connected ? "Disconnect Eth Wallet" : "Connect Eth Wallet"}
           </button>
           </div>
           {connected && (
-            <div>
-              <p>Connected eth wallet address: {ethWalletAddress}</p>
-              <div>
-                <input id="message" type="text" placeholder="Message to sign" value={message} onChange={
-                  (e) => setMessage(e.target.value.padEnd(32, '0'))
-                }/>
+            <div className="p-4 bg-gray-100 rounded-lg shadow-md mb-10">
+              <p className="mb-4 text-lg font-semibold text-gray-700">
+                Connected eth wallet address: {ethWalletAddress}
+              </p>
+              <div className="flex flex-col space-y-4">
+                <input
+                  id="message"
+                  type="text"
+                  placeholder="Message to sign"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
                 <button
-                  className="btn"
+                  className="mt-4 mb-4 w-full text-lg text-white font-bold rounded-lg p-2 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-700 hover:to-blue-900"
                   onClick={async () => {
                     const ethSignature = await signMessageEthers(message);
                     console.log(ethSignature);
-                  }}>Sign Message Ethers</button>
+                  }}
+                >
+                  Sign Message Ethers
+                </button>
               </div>
             </div>
           )}
           {!!ethSignature && (
-            <div>
-              <p>Signature: {ethSignature}</p>
-              <button className="btn" onClick={async () => {
+            <div className="p-4 bg-gray-100 rounded-lg shadow-md">
+              {!hasBeenCompiled && (
+                <div>
+                  <p className="mb-4 text-lg font-semibold text-gray-700">Compiling zkProgram...</p>
+                </div>
+              )}
+              {hasBeenCompiled && (
+                <div>
+              <p className="mb-4 text-lg font-semibold text-gray-700">Signature: {shortenString(ethSignature)}</p>
+              <p className="mb-4 text-lg font-semibold text-gray-700">Public Key: {ethWalletAddress}</p>
+              <p className="mb-4 text-lg font-semibold text-gray-700">Message: {message}</p>
+              <button className="mt-4 mb-4 w-full text-lg text-white font-bold rounded-lg p-2 bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-700 hover:to-purple-900" onClick={async () => {
                 if(hasBeenCompiled) {
-                  await verifyMessageMina(message);
+                  setIsVerifying(true);
+                  const result = await verifyMessageMina(message);
+                  console.log(result);
+                  setIsVerified(result.valid);
+                  setProof(result.proof);
+                  setIsVerifying(false);
                 } else {
                   console.log('zkProgram not compiled yet')
                 }
-              }}>Verify Signature</button>
+              }}>Verify Signature o1js</button>
+              {isVerifying && (<div>
+                <p className="mb-4 text-lg font-semibold text-gray-700">Verifying signature...</p>
+              </div>)}
+              {!isVerifying && isVerified !== null && (
+                <div className='overflow-scroll max-w-xl'>
+                  <p className="mb-4 text-lg font-semibold text-gray-700">Verification: {isVerified ? 'Success' : 'Failed'}</p>
+                  <p className="mb-4 text-lg font-semibold text-gray-700">Public Output:</p>
+                  <pre className="bg-gray-200 p-4 rounded-lg max-w-3/4 mx-auto whitespace-pre-wrap break-words">
+                    {proof?.publicOutput || ''}
+                  </pre>
+                  <p className="mb-4 text-lg font-semibold text-gray-700">Public Input:</p>
+                  <pre className="bg-gray-200 p-4 rounded-lg max-w-3/4 mx-auto whitespace-pre-wrap break-words">
+                    {proof?.publicInput || ''}
+                  </pre>
+                  <p className="mb-4 text-lg font-semibold text-gray-700">Proof:</p>
+                  <pre className="bg-gray-200 p-4 rounded-lg max-w-3/4 mx-auto whitespace-pre-wrap break-words">
+                    {proof?.proof || ''}
+                  </pre>
+                </div>
+                )}
+              </div>
+              )}
             </div>
           )}
+          </div>
+          </div>
         </main>
       </GradientBG>
     </>
