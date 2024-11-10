@@ -18,7 +18,7 @@
     "buildw": "tsc --watch",
     "coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "format": "prettier --write --ignore-unknown **/*",
-    "test": "npm run build && npx vitest run",
+    "test": "bun run build && npx vitest run",
     "lint": "npx eslint src/* --fix"
   },
   "devDependencies": {

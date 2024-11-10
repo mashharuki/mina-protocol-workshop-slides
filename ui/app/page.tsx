@@ -1,14 +1,18 @@
 'use client';
+import { ethers, SigningKey } from 'ethers';
 import Head from 'next/head';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import GradientBG from './components/GradientBG.js';
-import styles from '../styles/Home.module.css';
-import heroMinaLogo from '../public/assets/hero-mina-logo.svg';
-import ZkWorkerClient from './zkWorkerClient';
-import { ethers, SigningKey } from 'ethers';
 import { JsonProof } from 'o1js';
+import { useEffect, useState } from 'react';
+import heroMinaLogo from './../public/assets/hero-mina-logo.svg';
+import styles from './../styles/Home.module.css';
+import GradientBG from './components/GradientBG.js';
+import ZkWorkerClient from './zkWorkerClient';
 
+/**
+ * home component
+ * @returns 
+ */
 export default function Home() {
   const [zkWorkerClient] = useState(new ZkWorkerClient());
   const [hasBeenCompiled, sethasBeenCompiled] = useState(false);
@@ -47,6 +51,10 @@ export default function Home() {
     }
   }
 
+  /**
+   * 署名データから公開鍵を取得する。
+   * @returns 
+   */
   async function getPublicKeyFromSignature() {
     const address = ethWalletAddress;
     console.log('Wallet Address:', address);
@@ -54,7 +62,7 @@ export default function Home() {
     // Hash the message (to match Ethereum's signing behavior)
     const paddedMessage = message.padEnd(32, '0');
     const messageHash = ethers.hashMessage(paddedMessage);
-
+    // メッセージハッシュと署名データから公開鍵を復元する。
     const ethPublicKey = SigningKey.recoverPublicKey(messageHash, ethSignature);
     const compressedPublicKey = SigningKey.computePublicKey(ethPublicKey, true);
 
@@ -64,10 +72,16 @@ export default function Home() {
     // return ethWallet.signingKey.compressedPublicKey;
   }
 
+  /**
+   * メッセージから署名データを作成する。
+   * @param message 
+   * @returns 
+   */
   async function signMessageEthers(message: string) {
     const paddedMessage = message.padEnd(32, '0');
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
+    // 署名データを作成する。
     const ethSignature = await signer.signMessage(paddedMessage);
     console.log('signing message with ethers.js');
     console.log('message:', paddedMessage);
@@ -75,9 +89,16 @@ export default function Home() {
     return ethSignature;
   }
 
+  /**
+   * メッセージを渡して検証する。
+   * @param message 
+   * @returns 
+   */
   async function verifyMessageMina(message: string) {
     const paddedMessage = message.padEnd(32, '0');
+    // 署名データから公開鍵を取得する。
     const ethPublicKey = await getPublicKeyFromSignature();
+    // 検証する。
     const result = await zkWorkerClient.verifySignature(
       paddedMessage,
       ethSignature,
@@ -89,6 +110,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       console.log('compiling...');
+      // プログラムをロードしてコンパイルする
       await zkWorkerClient.loadProgram();
       await zkWorkerClient.compileProgram();
       console.log('compiled!');

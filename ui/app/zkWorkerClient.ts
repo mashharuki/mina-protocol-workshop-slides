@@ -1,5 +1,8 @@
 import * as Comlink from "comlink";
 
+/**
+ * ZkWorkerCllient Class
+ */
 export default class ZkWorkerCllient {
   // ---------------------------------------------------------------------------------------
   worker: Worker;
